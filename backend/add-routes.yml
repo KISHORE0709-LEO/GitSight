@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: GitSight API Routes Update
+
+Resources:
+  # Metrics Integration
+  MetricsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: gitsight-api-dev
+      IntegrationType: AWS_PROXY
+      IntegrationUri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:ACCOUNT_ID:function:gitsight-metrics-dev/invocations
+      PayloadFormatVersion: '2.0'
+
+  # Leaderboard Integration
+  LeaderboardIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: gitsight-api-dev
+      IntegrationType: AWS_PROXY
+      IntegrationUri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:ACCOUNT_ID:function:gitsight-leaderboard-dev/invocations
+      PayloadFormatVersion: '2.0'
+
+  # Routes
+  MetricsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: gitsight-api-dev
+      RouteKey: 'GET /api/metrics/system'
+      Target: !Sub integrations/${MetricsIntegration}
+
+  LeaderboardRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: gitsight-api-dev
+      RouteKey: 'GET /api/developers/top'
+      Target: !Sub integrations/${LeaderboardIntegration}
+
+  # Lambda Permissions
+  MetricsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: gitsight-metrics-dev
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: arn:aws:execute-api:us-east-1:ACCOUNT_ID:gitsight-api-dev/*/*
+
+  LeaderboardInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: gitsight-leaderboard-dev
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: arn:aws:execute-api:us-east-1:ACCOUNT_ID:gitsight-api-dev/*/*

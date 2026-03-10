@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  worker:
+    build: ./backend/worker
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_GATEWAY_URL=${API_GATEWAY_URL}
+    command: npm run dev

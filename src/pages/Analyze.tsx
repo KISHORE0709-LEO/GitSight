@@ -2,33 +2,67 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { MetricCard } from "@/components/MetricCard";
-import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal } from "lucide-react";
+import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal, Loader2, AlertCircle, TrendingUp, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
-const mockData = {
-  username: "octocat",
-  commits: 142,
-  mergedPR: 28,
-  rejectedPR: 3,
-  score: 142 * 1 + 28 * 5 - 3 * 2,
-  weeklyActivity: [
-    { day: "Mon", commits: 8 },
-    { day: "Tue", commits: 12 },
-    { day: "Wed", commits: 5 },
-    { day: "Thu", commits: 18 },
-    { day: "Fri", commits: 14 },
-    { day: "Sat", commits: 3 },
-    { day: "Sun", commits: 1 },
-  ],
-};
+interface AnalysisResult {
+  username: string;
+  commits: number;
+  mergedPR: number;
+  rejectedPR: number;
+  score: number;
+  weeklyActivity: { day: string; commits: number }[];
+  repositories?: number;
+}
 
 export default function Analyze() {
   const [username, setUsername] = useState("");
-  const [analyzed, setAnalyzed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<AnalysisResult | null>(null);
 
-  const handleAnalyze = () => {
-    if (username.trim()) setAnalyzed(true);
+  const handleAnalyze = async () => {
+    if (!username.trim()) return;
+    
+    setLoading(true);
+    setError(null);
+    setData(null);
+
+    try {
+      const response = await fetch(`/api/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          throw new Error('User not found on GitHub. Please check the username and try again.');
+        }
+        if (response.status === 403) {
+          throw new Error('GitHub API rate limit reached. Try again later.');
+        }
+        throw new Error(errorData.message || `Failed to analyze user: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const getDeveloperRank = (score: number) => {
+    if (score > 500) return { rank: "Top 5%", trend: "Exceptional" };
+    if (score > 300) return { rank: "Top 12%", trend: "Increasing" };
+    if (score > 150) return { rank: "Top 30%", trend: "Stable" };
+    return { rank: "Top 50%", trend: "Growing" };
+  };
+
+  const developerStats = data ? getDeveloperRank(data.score) : null;
 
   return (
     <Layout>
@@ -52,45 +86,74 @@ export default function Analyze() {
           </div>
           <button
             onClick={handleAnalyze}
-            className="px-7 py-3 rounded-xl bg-primary text-primary-foreground font-mono text-sm font-bold hover:bg-primary/90 transition-all box-glow-primary hover:scale-[1.02] active:scale-[0.98]"
+            disabled={loading}
+            className="px-7 py-3 rounded-xl bg-primary text-primary-foreground font-mono text-sm font-bold hover:bg-primary/90 disabled:opacity-50 transition-all box-glow-primary hover:scale-[1.02] active:scale-[0.98]"
           >
             Analyze
           </button>
         </div>
 
-        {analyzed && (
+        {loading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16 space-y-4">
+            <Loader2 className="h-12 w-12 text-primary animate-spin" />
+            <p className="text-sm text-muted-foreground font-mono">Analyzing {username}...</p>
+            <p className="text-xs text-muted-foreground">Fetching GitHub data and calculating metrics</p>
+          </motion.div>
+        )}
+
+        {error && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl border border-destructive/50 bg-destructive/10 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-destructive">Analysis Failed</p>
+              <p className="text-xs text-destructive/80 mt-1">{error}</p>
+            </div>
+          </motion.div>
+        )}
+
+        {data && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-6">
             <div className="flex items-center gap-4 p-4 rounded-xl border border-border card-shine">
               <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/10 border border-primary/30 flex items-center justify-center">
                 <span className="text-xl font-black font-mono text-primary">
-                  {username[0]?.toUpperCase()}
+                  {data.username[0]?.toUpperCase()}
                 </span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-foreground font-mono">@{username}</h2>
+                <h2 className="text-lg font-bold text-foreground font-mono">@{data.username}</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Last 30 days activity</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <MetricCard icon={GitCommit} title="Commits" value={mockData.commits} variant="primary" />
-              <MetricCard icon={GitMerge} title="Merged PRs" value={mockData.mergedPR} variant="accent" />
-              <MetricCard icon={XCircle} title="Rejected PRs" value={mockData.rejectedPR} variant="warning" />
-              <MetricCard icon={Trophy} title="Score" value={mockData.score} variant="primary" />
-              <MetricCard icon={GitPullRequest} title="Total PRs" value={mockData.mergedPR + mockData.rejectedPR} />
+              <MetricCard icon={GitCommit} title="Commits" value={data.commits} variant="primary" />
+              <MetricCard icon={GitMerge} title="Merged PRs" value={data.mergedPR} variant="accent" />
+              <MetricCard icon={XCircle} title="Rejected PRs" value={data.rejectedPR} variant="warning" />
+              <MetricCard icon={Trophy} title="Score" value={data.score} variant="primary" />
+              <MetricCard icon={GitPullRequest} title="Total PRs" value={data.mergedPR + data.rejectedPR} />
             </div>
+
+            {data.repositories && (
+              <div className="p-4 rounded-xl border border-border bg-card">
+                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Repositories Analyzed</p>
+                <p className="text-3xl font-bold font-mono text-foreground">{data.repositories}</p>
+              </div>
+            )}
 
             <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 font-mono text-xs text-muted-foreground flex items-center gap-2">
               <Terminal className="h-4 w-4 text-primary shrink-0" />
-              <span>
-                <span className="text-primary font-bold">score</span> = (commits × 1) + (merged_pr × 5) − (rejected_pr × 2) = <span className="text-foreground font-bold">{mockData.score}</span>
-              </span>
+              <div>
+                <p className="text-primary font-bold mb-1">Score Calculation Formula</p>
+                <span>
+                  <span className="text-primary font-bold">score</span> = (commits × 1) + (merged_pr × 5) − (rejected_pr × 2) = <span className="text-foreground font-bold">{data.score}</span>
+                </span>
+              </div>
             </div>
 
             <div className="rounded-xl border border-border card-shine p-6">
               <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold mb-6">Weekly Commit Activity</h3>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={mockData.weeklyActivity}>
+                <BarChart data={data.weeklyActivity}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 16% 14%)" />
                   <XAxis dataKey="day" tick={{ fill: "hsl(215 15% 50%)", fontSize: 11, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: "hsl(215 15% 50%)", fontSize: 11, fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
@@ -103,6 +166,25 @@ export default function Analyze() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {developerStats && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-accent/20 bg-accent/5 flex items-center gap-3">
+                  <Award className="h-5 w-5 text-accent" />
+                  <div>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Developer Rank</p>
+                    <p className="text-lg font-bold text-foreground font-mono">{developerStats.rank}</p>
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Activity Trend</p>
+                    <p className="text-lg font-bold text-foreground font-mono">{developerStats.trend}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
