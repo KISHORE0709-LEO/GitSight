@@ -16,7 +16,7 @@ Resources:
       VisibilityTimeout: 300
       MessageRetentionPeriod: 1209600
 
-  # DynamoDB Table
+  # DynamoDB Tables
   MetricsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -32,6 +32,21 @@ Resources:
           KeyType: HASH
         - AttributeName: timestamp
           KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  IncidentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub GitSightIncidents-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
@@ -67,7 +82,10 @@ Resources:
                 Action:
                   - dynamodb:Scan
                   - dynamodb:Query
-                Resource: !GetAtt MetricsTable.Arn
+                  - dynamodb:PutItem
+                Resource: 
+                  - !GetAtt MetricsTable.Arn
+                  - !GetAtt IncidentsTable.Arn
               - Effect: Allow
                 Action:
                   - cloudwatch:GetMetricStatistics
@@ -89,7 +107,7 @@ Resources:
         AllowHeaders:
           - Content-Type
 
-  # API Handler Integration
+  # Integrations
   ApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -98,7 +116,6 @@ Resources:
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiHandlerFunction.Arn}/invocations
       PayloadFormatVersion: '2.0'
 
-  # Metrics Integration
   MetricsIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -107,13 +124,20 @@ Resources:
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MetricsFunction.Arn}/invocations
       PayloadFormatVersion: '2.0'
 
-  # Leaderboard Integration
   LeaderboardIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref ApiGateway
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LeaderboardFunction.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  IncidentsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${IncidentsFunction.Arn}/invocations
       PayloadFormatVersion: '2.0'
 
   # Routes
@@ -137,6 +161,13 @@ Resources:
       ApiId: !Ref ApiGateway
       RouteKey: 'GET /api/developers/top'
       Target: !Sub integrations/${LeaderboardIntegration}
+
+  IncidentsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/incidents'
+      Target: !Sub integrations/${IncidentsIntegration}
 
   # API Gateway Stage
   ApiStage:
@@ -167,6 +198,14 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref LeaderboardFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
+
+  IncidentsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IncidentsFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
@@ -241,6 +280,23 @@ Resources:
           DYNAMODB_TABLE: !Ref MetricsTable
       Timeout: 10
 
+  IncidentsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub gitsight-incidents-${Environment}
+      Runtime: nodejs18.x
+      Handler: incidents.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy from backend/lambda/incidents.js' }) };
+          };
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref AnalyticsQueue
+      Timeout: 10
+
   # Worker Task Role
   WorkerTaskRole:
     Type: AWS::IAM::Role
@@ -280,7 +336,12 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-QueueURL
   
-  TableName:
+  MetricsTableName:
     Value: !Ref MetricsTable
     Export:
-      Name: !Sub ${AWS::StackName}-TableName
+      Name: !Sub ${AWS::StackName}-MetricsTable
+
+  IncidentsTableName:
+    Value: !Ref IncidentsTable
+    Export:
+      Name: !Sub ${AWS::StackName}-IncidentsTable
