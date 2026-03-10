@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { LogEntry } from "@/components/LogEntry";
+import { Terminal } from "lucide-react";
 
 const allLogs = [
   { level: "INFO" as const, message: "System initialized. All services healthy.", timestamp: "14:32:01" },
@@ -27,6 +28,14 @@ export default function Logs() {
   const filters = ["ALL", "INFO", "WARNING", "ERROR", "DEBUG"];
   const filtered = filter === "ALL" ? allLogs : allLogs.filter((l) => l.level === filter);
 
+  const filterColors: Record<string, string> = {
+    ALL: "primary",
+    INFO: "primary",
+    WARNING: "warning",
+    ERROR: "destructive",
+    DEBUG: "accent",
+  };
+
   return (
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-6">
@@ -36,25 +45,33 @@ export default function Logs() {
         </div>
 
         <div className="flex gap-2">
-          {filters.map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-xs font-mono transition-colors ${
-                filter === f
-                  ? "bg-primary/10 text-primary border border-primary/30"
-                  : "bg-secondary text-muted-foreground border border-border hover:text-foreground"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+          {filters.map((f) => {
+            const isActive = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                  isActive
+                    ? `bg-${filterColors[f]}/10 text-${filterColors[f]} border border-${filterColors[f]}/30`
+                    : "bg-secondary/50 text-muted-foreground border border-border hover:text-foreground hover:border-muted-foreground/30"
+                }`}
+              >
+                {f}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="px-3 py-2 border-b border-border bg-secondary/50 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-primary animate-pulse-glow" />
-            <span className="text-[10px] font-mono text-muted-foreground">LIVE LOG STREAM</span>
+        <div className="rounded-xl border border-border card-shine overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-secondary/30 flex items-center gap-2.5">
+            <Terminal className="h-3.5 w-3.5 text-primary" />
+            <div className="relative">
+              <div className="h-2 w-2 rounded-full bg-primary" />
+              <div className="absolute inset-0 h-2 w-2 rounded-full bg-primary animate-ping opacity-40" />
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground tracking-wider">LIVE LOG STREAM</span>
+            <span className="ml-auto text-[10px] font-mono text-muted-foreground/50">{filtered.length} entries</span>
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             {filtered.map((log, i) => (

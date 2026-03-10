@@ -23,33 +23,32 @@ const items = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <div className="p-4 border-b border-border">
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/10 border border-primary/30 flex items-center justify-center">
                 <Network className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-foreground font-mono">GHOPS</h2>
-                <p className="text-[10px] text-muted-foreground">Observability Platform</p>
+                <h2 className="text-sm font-extrabold text-foreground font-mono tracking-wider">GHOPS</h2>
+                <p className="text-[10px] text-muted-foreground font-mono">v2.4.1 • Observability</p>
               </div>
             </div>
           )}
           {collapsed && (
             <div className="flex justify-center">
-              <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/10 border border-primary/30 flex items-center justify-center">
                 <Network className="h-4 w-4 text-primary" />
               </div>
             </div>
           )}
         </div>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-mono text-muted-foreground tracking-widest">
+          <SidebarGroupLabel className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.2em]">
             NAVIGATION
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -60,11 +59,11 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                      activeClassName="bg-primary/10 text-primary font-medium box-glow-primary"
+                      className="hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all rounded-lg"
+                      activeClassName="bg-primary/10 text-primary font-medium border border-primary/20"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span className="text-sm">{item.title}</span>}
+                      {!collapsed && <span className="text-sm font-mono">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
