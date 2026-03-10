@@ -12,17 +12,17 @@ interface MetricCardProps {
 }
 
 const variantStyles = {
-  default: "border-border",
-  primary: "border-primary/30 box-glow-primary",
-  accent: "border-accent/30 box-glow-accent",
-  warning: "border-warning/30",
+  default: "border-border hover:border-muted-foreground/20",
+  primary: "border-primary/20 hover:border-primary/40 box-glow-primary",
+  accent: "border-accent/20 hover:border-accent/40 box-glow-accent",
+  warning: "border-warning/20 hover:border-warning/40 box-glow-warning",
 };
 
 const iconVariantStyles = {
   default: "bg-secondary text-muted-foreground",
-  primary: "bg-primary/10 text-primary",
-  accent: "bg-accent/10 text-accent",
-  warning: "bg-warning/10 text-warning",
+  primary: "bg-primary/10 text-primary border border-primary/20",
+  accent: "bg-accent/10 text-accent border border-accent/20",
+  warning: "bg-warning/10 text-warning border border-warning/20",
 };
 
 export function MetricCard({ title, value, subtitle, icon: Icon, trend, trendValue, variant = "default" }: MetricCardProps) {
@@ -30,20 +30,22 @@ export function MetricCard({ title, value, subtitle, icon: Icon, trend, trendVal
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-lg border bg-card p-5 ${variantStyles[variant]}`}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.3 }}
+      className={`rounded-xl border card-shine p-5 transition-all duration-300 ${variantStyles[variant]}`}
     >
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">{title}</p>
-          <p className="text-2xl font-bold mt-1 font-mono text-foreground">{value}</p>
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+        <div className="space-y-2">
+          <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest">{title}</p>
+          <p className="text-3xl font-bold font-mono text-foreground tracking-tight">{value}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
           {trendValue && (
-            <p className={`text-xs mt-1 font-mono ${trend === "up" ? "text-primary" : trend === "down" ? "text-destructive" : "text-muted-foreground"}`}>
-              {trend === "up" ? "▲" : trend === "down" ? "▼" : "●"} {trendValue}
-            </p>
+            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono ${trend === "up" ? "bg-primary/10 text-primary" : trend === "down" ? "bg-destructive/10 text-destructive" : "bg-secondary text-muted-foreground"}`}>
+              {trend === "up" ? "↑" : trend === "down" ? "↓" : "●"} {trendValue}
+            </div>
           )}
         </div>
-        <div className={`p-2 rounded-lg ${iconVariantStyles[variant]}`}>
+        <div className={`p-2.5 rounded-xl ${iconVariantStyles[variant]}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>

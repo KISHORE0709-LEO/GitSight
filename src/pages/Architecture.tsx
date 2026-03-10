@@ -37,29 +37,29 @@ export default function Architecture() {
           <p className="text-sm text-muted-foreground mt-1">Event-driven cloud-native processing pipeline</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="rounded-lg border border-border bg-card p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-xl border border-border card-shine p-6">
             <FlowDiagram steps={mainFlow} title="Main Processing Pipeline" />
           </div>
           <div className="space-y-6">
-            <div className="rounded-lg border border-border bg-card p-6">
+            <div className="rounded-xl border border-border card-shine p-6">
               <FlowDiagram steps={reliabilityFlow} title="Reliability Testing Layer" />
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {principles.map((p, i) => (
                 <motion.div
                   key={p.title}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="rounded-lg border border-border bg-card p-4 flex items-start gap-3"
+                  className="rounded-xl border border-border card-shine p-5 flex items-start gap-4 hover:border-primary/20 transition-all"
                 >
-                  <div className="p-2 rounded-lg bg-primary/10">
+                  <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
                     <p.icon className="h-4 w-4 text-primary" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">{p.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{p.description}</p>
                   </div>
                 </motion.div>
               ))}

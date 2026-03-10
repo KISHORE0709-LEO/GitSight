@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle, Clock, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, XCircle, Shield } from "lucide-react";
 
 const activeIncidents = [
   { id: "INC-042", title: "Queue backlog exceeds threshold", severity: "warning", time: "2 min ago", description: "Queue length > 100. Possible worker slowdown." },
@@ -14,31 +14,34 @@ const resolvedIncidents = [
 ];
 
 const severityConfig = {
-  critical: { icon: XCircle, color: "text-destructive", border: "border-destructive/30", bg: "bg-destructive/5" },
-  warning: { icon: AlertTriangle, color: "text-warning", border: "border-warning/30", bg: "bg-warning/5" },
-  resolved: { icon: CheckCircle, color: "text-primary", border: "border-primary/30", bg: "bg-primary/5" },
+  critical: { icon: XCircle, color: "text-destructive", border: "border-destructive/20", bg: "bg-destructive/5" },
+  warning: { icon: AlertTriangle, color: "text-warning", border: "border-warning/20", bg: "bg-warning/5" },
+  resolved: { icon: CheckCircle, color: "text-primary", border: "border-primary/20", bg: "bg-primary/5" },
 };
 
-function IncidentCard({ incident }: { incident: typeof activeIncidents[0] }) {
+function IncidentCard({ incident, index }: { incident: typeof activeIncidents[0]; index: number }) {
   const config = severityConfig[incident.severity as keyof typeof severityConfig];
   const Icon = config.icon;
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-lg border ${config.border} ${config.bg} p-4`}
+      transition={{ delay: index * 0.05 }}
+      className={`rounded-xl border ${config.border} ${config.bg} p-5 hover:brightness-110 transition-all`}
     >
-      <div className="flex items-start gap-3">
-        <Icon className={`h-5 w-5 mt-0.5 ${config.color}`} />
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-muted-foreground">{incident.id}</span>
-            <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
+      <div className="flex items-start gap-3.5">
+        <div className={`p-2 rounded-lg ${config.bg}`}>
+          <Icon className={`h-4 w-4 ${config.color}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-mono text-muted-foreground/60 font-bold">{incident.id}</span>
+            <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 shrink-0">
               <Clock className="h-3 w-3" /> {incident.time}
             </span>
           </div>
-          <h3 className="text-sm font-bold text-foreground mt-1">{incident.title}</h3>
-          <p className="text-xs text-muted-foreground mt-1">{incident.description}</p>
+          <h3 className="text-sm font-bold text-foreground mt-1.5">{incident.title}</h3>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{incident.description}</p>
         </div>
       </div>
     </motion.div>
@@ -54,39 +57,45 @@ export default function Incidents() {
           <p className="text-sm text-muted-foreground mt-1">Automated anomaly detection and alerting</p>
         </div>
 
-        <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="rounded-xl border border-warning/20 bg-warning/5 p-5 flex items-start gap-3.5">
+          <div className="p-2 rounded-lg bg-warning/10 shrink-0">
             <AlertTriangle className="h-4 w-4 text-warning" />
-            <span className="text-sm font-mono font-bold text-warning">{activeIncidents.length} Active Incidents</span>
           </div>
-          <p className="text-xs text-muted-foreground">Automated detection rules are monitoring system health</p>
+          <div>
+            <span className="text-sm font-mono font-bold text-warning">{activeIncidents.length} Active Incidents</span>
+            <p className="text-xs text-muted-foreground mt-0.5">Automated detection rules are monitoring system health</p>
+          </div>
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Active</h2>
-          {activeIncidents.map((inc) => <IncidentCard key={inc.id} incident={inc} />)}
+          <h2 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold">Active</h2>
+          {activeIncidents.map((inc, i) => <IncidentCard key={inc.id} incident={inc} index={i} />)}
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Resolved</h2>
-          {resolvedIncidents.map((inc) => <IncidentCard key={inc.id} incident={inc} />)}
+          <h2 className="text-xs font-mono text-muted-foreground uppercase tracking-[0.2em] font-bold">Resolved</h2>
+          {resolvedIncidents.map((inc, i) => <IncidentCard key={inc.id} incident={inc} index={i} />)}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-4">Detection Rules</h3>
-          <div className="space-y-2 font-mono text-xs">
-            <div className="flex items-center gap-3 text-foreground/80">
-              <span className="text-primary">IF</span> queue_length &gt; 100 <span className="text-warning">→ ALERT</span> "Queue backlog high"
-            </div>
-            <div className="flex items-center gap-3 text-foreground/80">
-              <span className="text-primary">IF</span> api_latency &gt; 2000ms <span className="text-warning">→ ALERT</span> "High API latency"
-            </div>
-            <div className="flex items-center gap-3 text-foreground/80">
-              <span className="text-primary">IF</span> worker_health = failed <span className="text-destructive">→ ALERT</span> "Worker down"
-            </div>
-            <div className="flex items-center gap-3 text-foreground/80">
-              <span className="text-primary">IF</span> rate_limit &gt; 90% <span className="text-warning">→ ALERT</span> "Rate limit approaching"
-            </div>
+        <div className="rounded-xl border border-border card-shine p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Shield className="h-4 w-4 text-primary" />
+            <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold">Detection Rules</h3>
+          </div>
+          <div className="space-y-3 font-mono text-xs">
+            {[
+              { condition: "queue_length > 100", alert: "Queue backlog high", level: "text-warning" },
+              { condition: "api_latency > 2000ms", alert: "High API latency", level: "text-warning" },
+              { condition: "worker_health = failed", alert: "Worker down", level: "text-destructive" },
+              { condition: "rate_limit > 90%", alert: "Rate limit approaching", level: "text-warning" },
+            ].map((rule, i) => (
+              <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/30 text-foreground/80">
+                <span className="text-primary font-bold">IF</span>
+                <span className="flex-1">{rule.condition}</span>
+                <span className={`font-bold ${rule.level}`}>→ ALERT</span>
+                <span className="text-muted-foreground">"{rule.alert}"</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

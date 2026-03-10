@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { FlowDiagram } from "@/components/FlowDiagram";
 import { motion } from "framer-motion";
-import { CheckCircle, Clock } from "lucide-react";
+import { CheckCircle, Clock, XCircle } from "lucide-react";
 
 const cicdSteps = [
   { label: "Developer Push", description: "Code pushed to GitHub repository" },
@@ -29,40 +29,38 @@ export default function DevOps() {
           <p className="text-sm text-muted-foreground mt-1">Automated build, test, and deployment workflow</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="rounded-lg border border-border bg-card p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-xl border border-border card-shine p-6">
             <FlowDiagram steps={cicdSteps} title="Deployment Pipeline" />
           </div>
 
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-4">Recent Builds</h3>
-            <div className="space-y-2">
+          <div className="rounded-xl border border-border card-shine p-6">
+            <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold mb-6">Recent Builds</h3>
+            <div className="space-y-1">
               {recentBuilds.map((build, i) => (
                 <motion.div
                   key={build.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between py-2.5 px-3 rounded-md hover:bg-secondary/50 transition-colors"
+                  className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-secondary/50 transition-all group"
                 >
                   <div className="flex items-center gap-3">
                     {build.status === "success" ? (
                       <CheckCircle className="h-4 w-4 text-primary" />
                     ) : (
-                      <div className="h-4 w-4 rounded-full border-2 border-destructive flex items-center justify-center">
-                        <div className="h-1.5 w-1.5 bg-destructive rounded-full" />
-                      </div>
+                      <XCircle className="h-4 w-4 text-destructive" />
                     )}
                     <div>
-                      <span className="text-sm font-mono text-foreground">{build.id}</span>
-                      <span className="text-xs text-muted-foreground ml-2">{build.branch}</span>
+                      <span className="text-sm font-mono text-foreground font-bold">{build.id}</span>
+                      <span className="text-xs text-muted-foreground ml-2 px-1.5 py-0.5 rounded bg-secondary/80 border border-border">{build.branch}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-xs font-mono text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" /> {build.duration}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{build.time}</span>
+                    <span className="text-[10px] text-muted-foreground/60">{build.time}</span>
                   </div>
                 </motion.div>
               ))}
@@ -70,9 +68,10 @@ export default function DevOps() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-4">Pipeline Configuration</h3>
-          <pre className="font-mono text-xs text-foreground/80 overflow-x-auto">
+        <div className="rounded-xl border border-border card-shine p-6">
+          <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold mb-6">Pipeline Configuration</h3>
+          <div className="rounded-lg bg-background/50 border border-border p-5 overflow-x-auto">
+            <pre className="font-mono text-xs text-foreground/80 leading-relaxed">
 {`name: CI/CD Pipeline
 on:
   push:
@@ -95,7 +94,8 @@ jobs:
         run: aws lambda update-function-code ...
       - name: Deploy Workers
         run: aws ecs update-service ...`}
-          </pre>
+            </pre>
+          </div>
         </div>
       </div>
     </Layout>
