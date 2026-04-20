@@ -43,36 +43,6 @@ export default function Analyze() {
 
   const developerStats = data ? getDeveloperRank(data.score) : null;
 
-  const getToolIcon = (toolName: string) => {
-    const toolMap: { [key: string]: string } = {
-      'Lambda': '⚡',
-      'EC2': '🖥️',
-      'S3': '📦',
-      'DynamoDB': '🗄️',
-      'RDS': '🗃️',
-      'CloudFormation': '🏗️',
-      'API Gateway': '🌐',
-      'SQS': '📨',
-      'SNS': '📢',
-      'CloudWatch': '👁️',
-      'IAM': '🔐',
-      'ECS': '🐳',
-      'Docker': '🐳',
-      'Kubernetes': '☸️',
-      'GitHub Actions': '⚙️',
-      'Jenkins': '🔧',
-      'Terraform': '🏗️',
-      'Ansible': '🤖',
-      'Prometheus': '📊',
-      'Grafana': '📈',
-      'ELK Stack': '📝',
-      'Git': '🔀',
-      'Linux': '🐧',
-      'Nginx': '⚙️',
-    };
-    return toolMap[toolName] || '🔧';
-  };
-
   return (
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
@@ -300,26 +270,26 @@ export default function Analyze() {
                         <div className="space-y-2 pt-2 border-t border-border/30">
                           {repo.awsTools.length > 0 && (
                             <div className="flex flex-wrap gap-2">
-                              {repo.awsTools.map((tool) => (
+                              {repo.awsTools.map((toolObj) => (
                                 <span
-                                  key={tool}
+                                  key={toolObj.tool}
                                   className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono"
                                 >
-                                  <span>{getToolIcon(tool)}</span>
-                                  {tool}
+                                  <span>{toolObj.icon}</span>
+                                  {toolObj.tool}
                                 </span>
                               ))}
                             </div>
                           )}
                           {repo.devopsTools.length > 0 && (
                             <div className="flex flex-wrap gap-2">
-                              {repo.devopsTools.map((tool) => (
+                              {repo.devopsTools.map((toolObj) => (
                                 <span
-                                  key={tool}
+                                  key={toolObj.tool}
                                   className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono"
                                 >
-                                  <span>{getToolIcon(tool)}</span>
-                                  {tool}
+                                  <span>{toolObj.icon}</span>
+                                  {toolObj.tool}
                                 </span>
                               ))}
                             </div>
