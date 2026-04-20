@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Analyze from "./pages/Analyze";
 import Dashboard from "./pages/Dashboard";
 import Incidents from "./pages/Incidents";
+import HowItWorks from "./pages/HowItWorks";
 import Logs from "./pages/Logs";
 import Chaos from "./pages/Chaos";
 import Architecture from "./pages/Architecture";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/analyze" element={<Analyze />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/incidents" element={<Incidents />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/logs" element={<Logs />} />
             <Route path="/chaos" element={<Chaos />} />
             <Route path="/architecture" element={<Architecture />} />

@@ -1,5 +1,5 @@
 import {
-  Home, Search, BarChart3, AlertTriangle, FileText, Zap, Network, GitBranch
+  Home, Search, BarChart3, AlertTriangle, FileText, Zap, Network, GitBranch, HelpCircle
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAnalysis } from "@/context/AnalysisContext";
@@ -19,6 +19,7 @@ export function AppSidebar() {
     { title: "Analyze", url: "/analyze", icon: Search },
     { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
     { title: "Incidents", url: "/incidents", icon: AlertTriangle },
+    { title: "How It Works", url: "/how-it-works", icon: HelpCircle },
     { title: "Logs", url: "/logs", icon: FileText },
     { title: "Chaos", url: "/chaos", icon: Zap },
     { title: "Architecture", url: "/architecture", icon: Network },
@@ -90,6 +91,13 @@ export function AppSidebar() {
               <p className="text-xs font-mono text-primary">Logs: @{analyzedUsername}</p>
               <p className="text-xs font-mono text-primary">Chaos: @{analyzedUsername}</p>
             </div>
+          </div>
+        )}
+
+        {!collapsed && (
+          <div className="px-4 py-3 border-t border-border mt-4">
+            <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.2em] uppercase mb-2">Need Help?</p>
+            <p className="text-xs text-muted-foreground">Check out the "How It Works" page to understand how GitSight analyzes developers!</p>
           </div>
         )}
       </SidebarContent>
