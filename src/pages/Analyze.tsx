@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { MetricCard } from "@/components/MetricCard";
 import { useAnalysis } from "@/context/AnalysisContext";
-import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal, Loader2, AlertCircle, TrendingUp, Award, Users, Code2, Star } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal, Loader2, AlertCircle, TrendingUp, Award, Code2, Star, Cloud, Zap } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { mockApi } from "@/services/mockApi";
 
 import type { AnalysisResult } from "@/services/mockApi";
@@ -190,6 +190,52 @@ export default function Analyze() {
                         <span className="text-xs font-mono text-muted-foreground w-8 text-right">{lang.percentage}%</span>
                       </div>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.awsTools && data.awsTools.length > 0 && (
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 card-shine p-6">
+                <h3 className="text-xs font-mono text-blue-400 uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2">
+                  <Cloud className="h-4 w-4" />
+                  AWS Cloud Skills
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {data.awsTools.map((tool) => (
+                    <motion.div
+                      key={tool.tool}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-lg border border-blue-500/20 bg-blue-500/10 hover:border-blue-500/50 transition-all text-center"
+                    >
+                      <div className="text-2xl mb-2">{tool.icon}</div>
+                      <p className="text-xs font-mono text-foreground font-bold">{tool.tool}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{tool.proficiency}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.devopsTools && data.devopsTools.length > 0 && (
+              <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 card-shine p-6">
+                <h3 className="text-xs font-mono text-orange-400 uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  DevOps & Infrastructure
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {data.devopsTools.map((tool) => (
+                    <motion.div
+                      key={tool.tool}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-lg border border-orange-500/20 bg-orange-500/10 hover:border-orange-500/50 transition-all text-center"
+                    >
+                      <div className="text-2xl mb-2">{tool.icon}</div>
+                      <p className="text-xs font-mono text-foreground font-bold">{tool.tool}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{tool.proficiency}</p>
+                    </motion.div>
                   ))}
                 </div>
               </div>

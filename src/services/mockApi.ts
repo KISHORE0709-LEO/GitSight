@@ -13,6 +13,8 @@ export interface AnalysisResult {
   createdAt: string;
   topLanguages: { language: string; percentage: number }[];
   recentRepos: { name: string; stars: number; language: string }[];
+  awsTools: { tool: string; proficiency: string; icon: string }[];
+  devopsTools: { tool: string; proficiency: string; icon: string }[];
 }
 
 export interface SystemMetrics {
@@ -48,6 +50,41 @@ export interface Incident {
 }
 
 const GITHUB_API = 'https://api.github.com';
+
+const awsToolsList = [
+  { tool: 'Lambda', proficiency: 'Expert', icon: '⚡' },
+  { tool: 'EC2', proficiency: 'Advanced', icon: '🖥️' },
+  { tool: 'S3', proficiency: 'Expert', icon: '📦' },
+  { tool: 'DynamoDB', proficiency: 'Intermediate', icon: '🗄️' },
+  { tool: 'RDS', proficiency: 'Advanced', icon: '🗃️' },
+  { tool: 'CloudFormation', proficiency: 'Expert', icon: '🏗️' },
+  { tool: 'API Gateway', proficiency: 'Advanced', icon: '🌐' },
+  { tool: 'SQS', proficiency: 'Intermediate', icon: '📨' },
+  { tool: 'SNS', proficiency: 'Intermediate', icon: '📢' },
+  { tool: 'CloudWatch', proficiency: 'Advanced', icon: '👁️' },
+  { tool: 'IAM', proficiency: 'Expert', icon: '🔐' },
+  { tool: 'ECS', proficiency: 'Advanced', icon: '🐳' },
+];
+
+const devopsToolsList = [
+  { tool: 'Docker', proficiency: 'Expert', icon: '🐳' },
+  { tool: 'Kubernetes', proficiency: 'Advanced', icon: '☸️' },
+  { tool: 'GitHub Actions', proficiency: 'Expert', icon: '⚙️' },
+  { tool: 'Jenkins', proficiency: 'Advanced', icon: '🔧' },
+  { tool: 'Terraform', proficiency: 'Expert', icon: '🏗️' },
+  { tool: 'Ansible', proficiency: 'Intermediate', icon: '🤖' },
+  { tool: 'Prometheus', proficiency: 'Advanced', icon: '📊' },
+  { tool: 'Grafana', proficiency: 'Advanced', icon: '📈' },
+  { tool: 'ELK Stack', proficiency: 'Intermediate', icon: '📝' },
+  { tool: 'Git', proficiency: 'Expert', icon: '🔀' },
+  { tool: 'Linux', proficiency: 'Expert', icon: '🐧' },
+  { tool: 'Nginx', proficiency: 'Advanced', icon: '⚙️' },
+];
+
+const getRandomTools = (toolsList: any[], count: number) => {
+  const shuffled = [...toolsList].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
 
 const generateWeeklyActivity = () => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -157,6 +194,8 @@ export const mockApi = {
       createdAt: userInfo.created_at || new Date().toISOString(),
       topLanguages: repos.length > 0 ? calculateLanguageStats(repos) : generateTopLanguages(),
       recentRepos: repos.length > 0 ? formatRecentRepos(repos) : generateRecentRepos(username),
+      awsTools: getRandomTools(awsToolsList, 5),
+      devopsTools: getRandomTools(devopsToolsList, 5),
     };
   },
 
