@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAnalysis } from "@/context/AnalysisContext";
 import { Zap, Server, Wifi, RefreshCw, CheckCircle, AlertTriangle, Terminal } from "lucide-react";
 
 interface ChaosEvent {
@@ -15,6 +16,7 @@ interface TestResult {
 }
 
 export default function Chaos() {
+  const { analyzedUsername } = useAnalysis();
   const [results, setResults] = useState<TestResult[]>([]);
   const [running, setRunning] = useState(false);
 
@@ -32,11 +34,9 @@ export default function Chaos() {
     setResults((prev) => [...prev, testResult]);
 
     try {
-      // Trigger failure
       const response = await fetch(endpoint, { method: "POST" });
       const data = await response.json();
 
-      // Stream events
       if (data.events) {
         for (const event of data.events) {
           await new Promise(resolve => setTimeout(resolve, 600));
@@ -50,7 +50,6 @@ export default function Chaos() {
         }
       }
 
-      // Update status
       setResults((prev) => {
         const updated = [...prev];
         updated[updated.length - 1].status = data.recovered ? "recovered" : "failed";
@@ -75,9 +74,19 @@ export default function Chaos() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Chaos Testing</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {analyzedUsername ? `Chaos Testing for @${analyzedUsername}` : "Chaos Testing"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Simulate failures to validate system resilience</p>
         </div>
+
+        {analyzedUsername && (
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <p className="text-sm font-mono text-primary">
+              Testing resilience for: <span className="font-bold">@{analyzedUsername}</span>
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.button

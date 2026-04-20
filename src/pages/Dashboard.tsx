@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { MetricCard } from "@/components/MetricCard";
+import { useAnalysis } from "@/context/AnalysisContext";
 import { Clock, Layers, Cpu, Wifi, Crown, AlertCircle, CheckCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from "recharts";
 
@@ -32,6 +33,7 @@ const chartTooltipStyle = {
 };
 
 export default function Dashboard() {
+  const { analyzedUsername } = useAnalysis();
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [latencyHistory, setLatencyHistory] = useState<ChartData[]>([]);
@@ -50,7 +52,6 @@ export default function Dashboard() {
           const data = await metricsRes.json();
           setMetrics(data);
           
-          // Add to history
           setLatencyHistory(prev => [...prev.slice(-19), { time: new Date().toLocaleTimeString(), value: data.latency }]);
           setQueueHistory(prev => [...prev.slice(-19), { time: new Date().toLocaleTimeString(), value: data.queueBacklog }]);
         }
@@ -68,7 +69,7 @@ export default function Dashboard() {
     };
 
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 5000); // Refresh every 5 seconds
+    const interval = setInterval(fetchMetrics, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -86,9 +87,19 @@ export default function Dashboard() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Observability Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {analyzedUsername ? `Dashboard for @${analyzedUsername}` : "Observability Dashboard"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Real-time system metrics and performance monitoring</p>
         </div>
+
+        {analyzedUsername && (
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <p className="text-sm font-mono text-primary">
+              Showing metrics for analyzed user: <span className="font-bold">@{analyzedUsername}</span>
+            </p>
+          </div>
+        )}
 
         {/* System Status Header */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl border border-border bg-card">
@@ -168,7 +179,9 @@ export default function Dashboard() {
                     <div className="h-8 w-8 rounded-lg bg-secondary border border-border flex items-center justify-center">
                       <span className="text-xs font-mono font-bold text-foreground">{dev.username[0].toUpperCase()}</span>
                     </div>
-                    <span className="text-sm font-mono text-foreground group-hover:text-primary transition-colors">@{dev.username}</span>
+                    <span className={`text-sm font-mono text-foreground group-hover:text-primary transition-colors ${dev.username === analyzedUsername ? "font-bold text-primary" : ""}`}>
+                      @{dev.username}
+                    </span>
                   </div>
                   <div className="flex items-center gap-6">
                     <span className="text-xs font-mono text-muted-foreground">{dev.commits} commits</span>

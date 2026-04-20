@@ -2,27 +2,28 @@ import {
   Home, Search, BarChart3, AlertTriangle, FileText, Zap, Network, GitBranch
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useAnalysis } from "@/context/AnalysisContext";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
-  { title: "Home", url: "/", icon: Home },
-  { title: "Analyze", url: "/analyze", icon: Search },
-  { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
-  { title: "Incidents", url: "/incidents", icon: AlertTriangle },
-  { title: "Logs", url: "/logs", icon: FileText },
-  { title: "Chaos", url: "/chaos", icon: Zap },
-  { title: "Architecture", url: "/architecture", icon: Network },
-  { title: "DevOps", url: "/devops", icon: GitBranch },
-];
-
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { analyzedUsername } = useAnalysis();
   const collapsed = state === "collapsed";
+
+  const items = [
+    { title: "Home", url: "/", icon: Home },
+    { title: "Analyze", url: "/analyze", icon: Search },
+    { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
+    { title: "Incidents", url: "/incidents", icon: AlertTriangle },
+    { title: "Logs", url: "/logs", icon: FileText },
+    { title: "Chaos", url: "/chaos", icon: Zap },
+    { title: "Architecture", url: "/architecture", icon: Network },
+    { title: "DevOps", url: "/devops", icon: GitBranch },
+  ];
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -47,6 +48,14 @@ export function AppSidebar() {
             </div>
           )}
         </div>
+
+        {analyzedUsername && !collapsed && (
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.2em] uppercase mb-1">Analyzed User</p>
+            <p className="text-sm font-bold text-primary font-mono">@{analyzedUsername}</p>
+          </div>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.2em]">
             NAVIGATION
@@ -71,6 +80,18 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {analyzedUsername && !collapsed && (
+          <div className="px-4 py-3 border-t border-border mt-4">
+            <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.2em] uppercase mb-2">Current Analysis</p>
+            <div className="space-y-1">
+              <p className="text-xs font-mono text-primary">Dashboard: @{analyzedUsername}</p>
+              <p className="text-xs font-mono text-primary">Incidents: @{analyzedUsername}</p>
+              <p className="text-xs font-mono text-primary">Logs: @{analyzedUsername}</p>
+              <p className="text-xs font-mono text-primary">Chaos: @{analyzedUsername}</p>
+            </div>
+          </div>
+        )}
       </SidebarContent>
     </Sidebar>
   );

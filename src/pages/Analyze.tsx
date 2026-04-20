@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { MetricCard } from "@/components/MetricCard";
+import { useAnalysis } from "@/context/AnalysisContext";
 import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal, Loader2, AlertCircle, TrendingUp, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -20,6 +21,7 @@ export default function Analyze() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalysisResult | null>(null);
+  const { setAnalyzedUsername } = useAnalysis();
 
   const handleAnalyze = async () => {
     if (!username.trim()) return;
@@ -29,7 +31,6 @@ export default function Analyze() {
     setData(null);
 
     try {
-      // Use relative path - Vite proxy will handle it
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,6 +50,8 @@ export default function Analyze() {
 
       const result = await response.json();
       setData(result);
+      // Store the analyzed username in context
+      setAnalyzedUsername(result.username);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {

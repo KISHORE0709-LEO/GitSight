@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { LogEntry } from "@/components/LogEntry";
+import { useAnalysis } from "@/context/AnalysisContext";
 import { Terminal, RefreshCw } from "lucide-react";
 
 interface Log {
@@ -11,6 +12,7 @@ interface Log {
 }
 
 export default function Logs() {
+  const { analyzedUsername } = useAnalysis();
   const [logs, setLogs] = useState<Log[]>([]);
   const [filter, setFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ export default function Logs() {
     fetchLogs();
     
     if (autoRefresh) {
-      const interval = setInterval(fetchLogs, 3000); // Refresh every 3 seconds
+      const interval = setInterval(fetchLogs, 3000);
       return () => clearInterval(interval);
     }
   }, [filter, autoRefresh]);
@@ -55,9 +57,19 @@ export default function Logs() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">System Logs</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {analyzedUsername ? `Logs for @${analyzedUsername}` : "System Logs"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Centralized logging for debugging and monitoring</p>
         </div>
+
+        {analyzedUsername && (
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <p className="text-sm font-mono text-primary">
+              Showing logs for: <span className="font-bold">@{analyzedUsername}</span>
+            </p>
+          </div>
+        )}
 
         <div className="flex gap-2 items-center justify-between">
           <div className="flex gap-2">

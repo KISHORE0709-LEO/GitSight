@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { motion } from "framer-motion";
+import { useAnalysis } from "@/context/AnalysisContext";
 import { Shield, RefreshCw, Layers, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 
 interface Component {
@@ -47,6 +48,7 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Architecture() {
+  const { analyzedUsername } = useAnalysis();
   const [componentStatus, setComponentStatus] = useState<Component[]>(components);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +68,7 @@ export default function Architecture() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000); // Refresh every 5 seconds
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,9 +80,19 @@ export default function Architecture() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">System Architecture</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {analyzedUsername ? `Architecture for @${analyzedUsername}` : "System Architecture"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Event-driven cloud-native processing pipeline with live component status</p>
         </div>
+
+        {analyzedUsername && (
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <p className="text-sm font-mono text-primary">
+              Showing architecture for: <span className="font-bold">@{analyzedUsername}</span>
+            </p>
+          </div>
+        )}
 
         {/* System Health Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

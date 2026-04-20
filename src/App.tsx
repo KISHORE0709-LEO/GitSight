@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AnalysisProvider } from "@/context/AnalysisContext";
 import Index from "./pages/Index";
 import Analyze from "./pages/Analyze";
 import Dashboard from "./pages/Dashboard";
@@ -18,21 +19,23 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/analyze" element={<Analyze />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/incidents" element={<Incidents />} />
-          <Route path="/logs" element={<Logs />} />
-          <Route path="/chaos" element={<Chaos />} />
-          <Route path="/architecture" element={<Architecture />} />
-          <Route path="/devops" element={<DevOps />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AnalysisProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/analyze" element={<Analyze />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/incidents" element={<Incidents />} />
+            <Route path="/logs" element={<Logs />} />
+            <Route path="/chaos" element={<Chaos />} />
+            <Route path="/architecture" element={<Architecture />} />
+            <Route path="/devops" element={<DevOps />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AnalysisProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

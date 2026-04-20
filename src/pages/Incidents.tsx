@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
+import { useAnalysis } from "@/context/AnalysisContext";
 import { AlertCircle, CheckCircle, Clock, Zap, Activity, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -34,6 +35,7 @@ const alertRules: AlertRule[] = [
 ];
 
 export default function Incidents() {
+  const { analyzedUsername } = useAnalysis();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +55,7 @@ export default function Incidents() {
     };
 
     fetchIncidents();
-    const interval = setInterval(fetchIncidents, 10000); // Refresh every 10 seconds
+    const interval = setInterval(fetchIncidents, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -80,9 +82,19 @@ export default function Incidents() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Incident Management</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {analyzedUsername ? `Incidents for @${analyzedUsername}` : "Incident Management"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Real-time operational alerts and anomaly detection</p>
         </div>
+
+        {analyzedUsername && (
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+            <p className="text-sm font-mono text-primary">
+              Monitoring incidents for: <span className="font-bold">@{analyzedUsername}</span>
+            </p>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
