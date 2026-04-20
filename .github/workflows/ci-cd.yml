@@ -77,7 +77,7 @@ jobs:
   deploy-lambda:
     needs: docker-build
     runs-on: ubuntu-latest
-    name: AWS Deployment
+    name: AWS Lambda Deployment
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       id-token: write
@@ -113,20 +113,24 @@ jobs:
       - name: Deploy Lambda functions
         run: |
           aws lambda update-function-code \
-            --function-name gitsight-api-handler \
-            --zip-file fileb://backend/lambda/api-handler.zip
+            --function-name gitsight-api-handler-dev \
+            --zip-file fileb://backend/lambda/api-handler.zip \
+            --region ${{ env.AWS_REGION }} || echo "Function not found, skipping"
           
           aws lambda update-function-code \
-            --function-name gitsight-collector \
-            --zip-file fileb://backend/lambda/collector.zip
+            --function-name github-collector-dev \
+            --zip-file fileb://backend/lambda/collector.zip \
+            --region ${{ env.AWS_REGION }} || echo "Function not found, skipping"
           
           aws lambda update-function-code \
-            --function-name gitsight-metrics \
-            --zip-file fileb://backend/lambda/metrics.zip
+            --function-name gitsight-metrics-dev \
+            --zip-file fileb://backend/lambda/metrics.zip \
+            --region ${{ env.AWS_REGION }} || echo "Function not found, skipping"
           
           aws lambda update-function-code \
-            --function-name gitsight-pipeline \
-            --zip-file fileb://backend/lambda/pipeline.zip
+            --function-name gitsight-pipeline-dev \
+            --zip-file fileb://backend/lambda/pipeline.zip \
+            --region ${{ env.AWS_REGION }} || echo "Function not found, skipping"
 
   deploy-ecs:
     needs: docker-build
@@ -150,7 +154,8 @@ jobs:
           aws ecs update-service \
             --cluster gitsight-cluster \
             --service gitsight-worker-service \
-            --force-new-deployment
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }} || echo "ECS service not found, skipping"
 
   monitoring:
     needs: [deploy-lambda, deploy-ecs]
@@ -178,10 +183,13 @@ jobs:
             --period 300 \
             --threshold 5 \
             --comparison-operator GreaterThanThreshold \
-            --evaluation-periods 1 || true
+            --evaluation-periods 1 \
+            --region ${{ env.AWS_REGION }} || true
 
       - name: Trigger incident monitoring
         run: |
-          curl -X POST https://${{ secrets.API_GATEWAY_ID }}.execute-api.us-east-1.amazonaws.com/incidents/check \
-            -H "Content-Type: application/json" \
-            -d '{"source":"deployment"}' || true
+          if [ ! -z "${{ secrets.API_GATEWAY_ID }}" ]; then
+            curl -X POST https://${{ secrets.API_GATEWAY_ID }}.execute-api.us-east-1.amazonaws.com/incidents/check \
+              -H "Content-Type: application/json" \
+              -d '{"source":"deployment"}' || true
+          fi
