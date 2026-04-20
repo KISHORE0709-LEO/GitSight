@@ -1,4 +1,6 @@
 // Mock API service with real GitHub data fallback
+import { detectProjectTools } from './toolDetector';
+
 export interface AnalysisResult {
   username: string;
   commits: number;
@@ -12,7 +14,7 @@ export interface AnalysisResult {
   publicGists: number;
   createdAt: string;
   topLanguages: { language: string; percentage: number }[];
-  recentRepos: { name: string; stars: number; language: string }[];
+  recentRepos: { name: string; stars: number; language: string; awsTools: { tool: string; icon: string }[]; devopsTools: { tool: string; icon: string }[] }[];
   awsTools: { tool: string; proficiency: string; icon: string }[];
   devopsTools: { tool: string; proficiency: string; icon: string }[];
 }
@@ -86,6 +88,11 @@ const getRandomTools = (toolsList: any[], count: number) => {
   return shuffled.slice(0, count);
 };
 
+const getRandomToolNames = (toolsList: any[], count: number) => {
+  const shuffled = [...toolsList].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map(t => ({ tool: t.tool, icon: t.icon }));
+};
+
 const generateWeeklyActivity = () => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return days.map(day => ({
@@ -107,9 +114,27 @@ const generateTopLanguages = () => {
 
 const generateRecentRepos = (username: string) => {
   const repos = [
-    { name: `${username}/awesome-project`, stars: Math.floor(Math.random() * 500) + 50, language: 'TypeScript' },
-    { name: `${username}/api-service`, stars: Math.floor(Math.random() * 300) + 20, language: 'Go' },
-    { name: `${username}/cli-tool`, stars: Math.floor(Math.random() * 200) + 10, language: 'Rust' },
+    { 
+      name: `${username}/awesome-project`, 
+      stars: Math.floor(Math.random() * 500) + 50, 
+      language: 'TypeScript',
+      awsTools: getRandomToolNames(awsToolsList, 2),
+      devopsTools: getRandomToolNames(devopsToolsList, 2)
+    },
+    { 
+      name: `${username}/api-service`, 
+      stars: Math.floor(Math.random() * 300) + 20, 
+      language: 'Go',
+      awsTools: getRandomToolNames(awsToolsList, 2),
+      devopsTools: getRandomToolNames(devopsToolsList, 2)
+    },
+    { 
+      name: `${username}/cli-tool`, 
+      stars: Math.floor(Math.random() * 200) + 10, 
+      language: 'Rust',
+      awsTools: getRandomToolNames(awsToolsList, 2),
+      devopsTools: getRandomToolNames(devopsToolsList, 2)
+    },
   ];
   return repos;
 };
@@ -153,11 +178,29 @@ const calculateLanguageStats = (repos: any[]) => {
 };
 
 const formatRecentRepos = (repos: any[]) => {
-  return repos.slice(0, 3).map(repo => ({
-    name: repo.full_name,
-    stars: repo.stargazers_count || 0,
-    language: repo.language || 'Unknown'
-  }));
+  return repos.slice(0, 3).map(repo => {
+    // Check if this is GitSight repository
+    const isGitSight = repo.full_name.toLowerCase().includes('gitsight');
+    
+    if (isGitSight) {
+      const { awsTools, devopsTools } = detectProjectTools();
+      return {
+        name: repo.full_name,
+        stars: repo.stargazers_count || 0,
+        language: repo.language || 'Unknown',
+        awsTools: awsTools.slice(0, 4).map(t => ({ tool: t.tool, icon: t.icon })),
+        devopsTools: devopsTools.slice(0, 4).map(t => ({ tool: t.tool, icon: t.icon }))
+      };
+    }
+    
+    return {
+      name: repo.full_name,
+      stars: repo.stargazers_count || 0,
+      language: repo.language || 'Unknown',
+      awsTools: getRandomToolNames(awsToolsList, 2),
+      devopsTools: getRandomToolNames(devopsToolsList, 2)
+    };
+  });
 };
 
 export const mockApi = {

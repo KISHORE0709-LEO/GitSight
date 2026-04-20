@@ -43,6 +43,36 @@ export default function Analyze() {
 
   const developerStats = data ? getDeveloperRank(data.score) : null;
 
+  const getToolIcon = (toolName: string) => {
+    const toolMap: { [key: string]: string } = {
+      'Lambda': '⚡',
+      'EC2': '🖥️',
+      'S3': '📦',
+      'DynamoDB': '🗄️',
+      'RDS': '🗃️',
+      'CloudFormation': '🏗️',
+      'API Gateway': '🌐',
+      'SQS': '📨',
+      'SNS': '📢',
+      'CloudWatch': '👁️',
+      'IAM': '🔐',
+      'ECS': '🐳',
+      'Docker': '🐳',
+      'Kubernetes': '☸️',
+      'GitHub Actions': '⚙️',
+      'Jenkins': '🔧',
+      'Terraform': '🏗️',
+      'Ansible': '🤖',
+      'Prometheus': '📊',
+      'Grafana': '📈',
+      'ELK Stack': '📝',
+      'Git': '🔀',
+      'Linux': '🐧',
+      'Nginx': '⚙️',
+    };
+    return toolMap[toolName] || '🔧';
+  };
+
   return (
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
@@ -244,9 +274,14 @@ export default function Analyze() {
             {data.recentRepos && data.recentRepos.length > 0 && (
               <div className="rounded-xl border border-border card-shine p-6">
                 <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold mb-6">Recent Repositories</h3>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {data.recentRepos.map((repo) => (
-                    <div key={repo.name} className="p-3 rounded-lg border border-border/50 hover:border-primary/50 transition-colors">
+                    <motion.div
+                      key={repo.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-lg border border-border/50 hover:border-primary/50 transition-colors space-y-3"
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <GitPullRequest className="h-4 w-4 text-primary" />
@@ -260,7 +295,38 @@ export default function Analyze() {
                           </div>
                         </div>
                       </div>
-                    </div>
+
+                      {(repo.awsTools.length > 0 || repo.devopsTools.length > 0) && (
+                        <div className="space-y-2 pt-2 border-t border-border/30">
+                          {repo.awsTools.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {repo.awsTools.map((tool) => (
+                                <span
+                                  key={tool}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono"
+                                >
+                                  <span>{getToolIcon(tool)}</span>
+                                  {tool}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {repo.devopsTools.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {repo.devopsTools.map((tool) => (
+                                <span
+                                  key={tool}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono"
+                                >
+                                  <span>{getToolIcon(tool)}</span>
+                                  {tool}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
                   ))}
                 </div>
               </div>
