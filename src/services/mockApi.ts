@@ -51,9 +51,30 @@ export interface Incident {
   current: string;
 }
 
+interface ToolItem {
+  tool: string;
+  proficiency: string;
+  icon: string;
+}
+
+interface GitHubUser {
+  login: string;
+  public_repos: number;
+  followers: number;
+  following: number;
+  public_gists: number;
+  created_at: string;
+}
+
+interface GitHubRepo {
+  full_name: string;
+  stargazers_count: number;
+  language: string | null;
+}
+
 const GITHUB_API = 'https://api.github.com';
 
-const awsToolsList = [
+const awsToolsList: ToolItem[] = [
   { tool: 'Lambda', proficiency: 'Expert', icon: '⚡' },
   { tool: 'EC2', proficiency: 'Advanced', icon: '🖥️' },
   { tool: 'S3', proficiency: 'Expert', icon: '📦' },
@@ -68,7 +89,7 @@ const awsToolsList = [
   { tool: 'ECS', proficiency: 'Advanced', icon: '🐳' },
 ];
 
-const devopsToolsList = [
+const devopsToolsList: ToolItem[] = [
   { tool: 'Docker', proficiency: 'Expert', icon: '🐳' },
   { tool: 'Kubernetes', proficiency: 'Advanced', icon: '☸️' },
   { tool: 'GitHub Actions', proficiency: 'Expert', icon: '⚙️' },
@@ -83,17 +104,17 @@ const devopsToolsList = [
   { tool: 'Nginx', proficiency: 'Advanced', icon: '⚙️' },
 ];
 
-const getRandomTools = (toolsList: any[], count: number) => {
+const getRandomTools = (toolsList: ToolItem[], count: number): ToolItem[] => {
   const shuffled = [...toolsList].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 };
 
-const getRandomToolNames = (toolsList: any[], count: number) => {
+const getRandomToolNames = (toolsList: ToolItem[], count: number): { tool: string; icon: string }[] => {
   const shuffled = [...toolsList].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count).map(t => ({ tool: t.tool, icon: t.icon }));
 };
 
-const generateWeeklyActivity = () => {
+const generateWeeklyActivity = (): { day: string; commits: number }[] => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return days.map(day => ({
     day,
@@ -101,7 +122,7 @@ const generateWeeklyActivity = () => {
   }));
 };
 
-const generateTopLanguages = () => {
+const generateTopLanguages = (): { language: string; percentage: number }[] => {
   const languages = ['JavaScript', 'TypeScript', 'Python', 'Go', 'Rust', 'Java'];
   const selected = languages.slice(0, Math.floor(Math.random() * 3) + 2);
   let remaining = 100;
@@ -112,7 +133,7 @@ const generateTopLanguages = () => {
   });
 };
 
-const generateRecentRepos = (username: string) => {
+const generateRecentRepos = (username: string): { name: string; stars: number; language: string; awsTools: { tool: string; icon: string }[]; devopsTools: { tool: string; icon: string }[] }[] => {
   const repos = [
     { 
       name: `${username}/awesome-project`, 
@@ -139,27 +160,27 @@ const generateRecentRepos = (username: string) => {
   return repos;
 };
 
-const fetchGitHubUser = async (username: string) => {
+const fetchGitHubUser = async (username: string): Promise<GitHubUser | null> => {
   try {
     const res = await fetch(`${GITHUB_API}/users/${username}`);
     if (!res.ok) return null;
-    return await res.json();
+    return await res.json() as GitHubUser;
   } catch {
     return null;
   }
 };
 
-const fetchGitHubRepos = async (username: string) => {
+const fetchGitHubRepos = async (username: string): Promise<GitHubRepo[]> => {
   try {
     const res = await fetch(`${GITHUB_API}/users/${username}/repos?sort=stars&per_page=6`);
     if (!res.ok) return [];
-    return await res.json();
+    return await res.json() as GitHubRepo[];
   } catch {
     return [];
   }
 };
 
-const calculateLanguageStats = (repos: any[]) => {
+const calculateLanguageStats = (repos: GitHubRepo[]): { language: string; percentage: number }[] => {
   const langMap: { [key: string]: number } = {};
   repos.forEach(repo => {
     if (repo.language) {
@@ -171,13 +192,13 @@ const calculateLanguageStats = (repos: any[]) => {
   return Object.entries(langMap)
     .map(([lang, count]) => ({
       language: lang,
-      percentage: Math.round((count as number / total) * 100)
+      percentage: Math.round((count / total) * 100)
     }))
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5);
 };
 
-const formatRecentRepos = (repos: any[]) => {
+const formatRecentRepos = (repos: GitHubRepo[]): { name: string; stars: number; language: string; awsTools: { tool: string; icon: string }[]; devopsTools: { tool: string; icon: string }[] }[] => {
   return repos.slice(0, 3).map(repo => {
     // Check if this is GitSight repository
     const isGitSight = repo.full_name.toLowerCase().includes('gitsight');
