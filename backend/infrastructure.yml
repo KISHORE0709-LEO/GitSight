@@ -51,6 +51,21 @@ Resources:
         AttributeName: ttl
         Enabled: true
 
+  LogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub GitSightLogs-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
   # Lambda Execution Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -86,6 +101,7 @@ Resources:
                 Resource: 
                   - !GetAtt MetricsTable.Arn
                   - !GetAtt IncidentsTable.Arn
+                  - !GetAtt LogsTable.Arn
               - Effect: Allow
                 Action:
                   - cloudwatch:GetMetricStatistics
@@ -140,6 +156,38 @@ Resources:
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${IncidentsFunction.Arn}/invocations
       PayloadFormatVersion: '2.0'
 
+  LogsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LogsFunction.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  ChaosIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChaosFunction.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  ArchitectureIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ArchitectureFunction.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
+  PipelineIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PipelineFunction.Arn}/invocations
+      PayloadFormatVersion: '2.0'
+
   # Routes
   AnalyzeRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -168,6 +216,48 @@ Resources:
       ApiId: !Ref ApiGateway
       RouteKey: 'GET /api/incidents'
       Target: !Sub integrations/${IncidentsIntegration}
+
+  LogsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/logs'
+      Target: !Sub integrations/${LogsIntegration}
+
+  ChaosWorkerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /api/chaos/worker-failure'
+      Target: !Sub integrations/${ChaosIntegration}
+
+  ChaosApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /api/chaos/api-failure'
+      Target: !Sub integrations/${ChaosIntegration}
+
+  ArchitectureRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/architecture/status'
+      Target: !Sub integrations/${ArchitectureIntegration}
+
+  SystemComponentsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/system-components'
+      Target: !Sub integrations/${ArchitectureIntegration}
+
+  PipelineRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /pipeline/status'
+      Target: !Sub integrations/${PipelineIntegration}
 
   # API Gateway Stage
   ApiStage:
@@ -206,6 +296,38 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref IncidentsFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
+
+  LogsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LogsFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
+
+  ChaosInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ChaosFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
+
+  ArchitectureInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ArchitectureFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
+
+  PipelineInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PipelineFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*
@@ -297,6 +419,77 @@ Resources:
           SQS_QUEUE_URL: !Ref AnalyticsQueue
       Timeout: 10
 
+  LogsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub gitsight-logs-${Environment}
+      Runtime: nodejs18.x
+      Handler: logs.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy from backend/lambda/logs.js' }) };
+          };
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub GitSightLogs-${Environment}
+      Timeout: 10
+
+  ChaosFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub gitsight-chaos-${Environment}
+      Runtime: nodejs18.x
+      Handler: chaos.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy from backend/lambda/chaos.js' }) };
+          };
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref AnalyticsQueue
+      Timeout: 10
+
+  ArchitectureFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub gitsight-architecture-${Environment}
+      Runtime: nodejs18.x
+      Handler: architecture.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy from backend/lambda/architecture.js' }) };
+          };
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref AnalyticsQueue
+          DYNAMODB_TABLE: !Ref MetricsTable
+          LAMBDA_COLLECTOR_NAME: !Ref CollectorFunction
+      Timeout: 10
+
+  PipelineFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub gitsight-pipeline-${Environment}
+      Runtime: nodejs18.x
+      Handler: pipeline.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy from backend/lambda/pipeline.js' }) };
+          };
+      Environment:
+        Variables:
+          GITHUB_OWNER: gitsight
+          GITHUB_REPO: GitSight
+      Timeout: 15
+
   # Worker Task Role
   WorkerTaskRole:
     Type: AWS::IAM::Role
@@ -345,3 +538,8 @@ Outputs:
     Value: !Ref IncidentsTable
     Export:
       Name: !Sub ${AWS::StackName}-IncidentsTable
+
+  LogsTableName:
+    Value: !Ref LogsTable
+    Export:
+      Name: !Sub ${AWS::StackName}-LogsTable

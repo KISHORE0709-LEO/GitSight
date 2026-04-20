@@ -29,7 +29,8 @@ export default function Analyze() {
     setData(null);
 
     try {
-      const response = await fetch(`/api/analyze`, {
+      // Use relative path - Vite proxy will handle it
+      const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim() })

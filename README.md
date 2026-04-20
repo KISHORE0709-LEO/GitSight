@@ -10,13 +10,14 @@ A comprehensive developer analytics platform that analyzes GitHub activity and c
 - **Event-Driven Architecture**: AWS Lambda, SQS, and DynamoDB
 - **Async Processing**: Docker workers for scalable metric calculation
 - **Real-time Updates**: Loading states and error handling
+- **Incident Management**: Real-time operational alerts and anomaly detection
+- **System Observability**: Live metrics dashboard and developer leaderboard
 
 ## 📋 Quick Links
 
 - **[Quick Start Guide](QUICKSTART.md)** - Get started immediately
 - **[Architecture Documentation](ARCHITECTURE.md)** - System design and data flow
 - **[Backend Deployment Guide](backend/README.md)** - Full AWS setup
-- **[Integration Summary](INTEGRATION_SUMMARY.md)** - What's been integrated
 
 ## 🏗️ Architecture
 
@@ -70,7 +71,6 @@ Visit: http://localhost:8080/analyze
 
 3. **Configure Frontend**:
    ```bash
-   # Get API Gateway URL from CloudFormation outputs
    echo "VITE_API_GATEWAY_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com" > .env.local
    ```
 
@@ -131,21 +131,25 @@ See [backend/README.md](backend/README.md) for detailed instructions.
 GitSight/
 ├── src/
 │   ├── pages/
-│   │   └── Analyze.tsx          # Main analysis page
+│   │   ├── Analyze.tsx          # Developer analysis page
+│   │   ├── Dashboard.tsx        # System observability dashboard
+│   │   └── Incidents.tsx        # Incident management page
 │   └── components/
 │       └── MetricCard.tsx       # Metric display component
 │
 ├── backend/
 │   ├── lambda/                  # AWS Lambda functions
 │   │   ├── api-handler.js       # API Gateway handler
-│   │   └── collector.js         # GitHub data collector
+│   │   ├── collector.js         # GitHub data collector
+│   │   ├── metrics.js           # System metrics API
+│   │   ├── leaderboard.js       # Developer leaderboard API
+│   │   └── incidents.js         # Incident monitoring API
 │   ├── worker/                  # Docker worker service
 │   ├── infrastructure.yml       # CloudFormation template
 │   └── deploy-lambdas.sh        # Lambda deployment script
 │
 ├── QUICKSTART.md                # Quick start guide
-├── ARCHITECTURE.md              # Architecture documentation
-└── SERVERLESS_SUMMARY.md        # Serverless benefits
+└── ARCHITECTURE.md              # Architecture documentation
 ```
 
 ## 🧪 Testing
@@ -220,21 +224,7 @@ DYNAMODB_TABLE=GitSightMetrics-dev
 - [Quick Start](QUICKSTART.md) - Get started fast
 - [Architecture](ARCHITECTURE.md) - System design
 - [Backend Setup](backend/README.md) - AWS deployment
-- [Integration Summary](INTEGRATION_SUMMARY.md) - What's integrated
-
-## 🤝 Contributing
-
-This project was built with Lovable and can be edited via:
-- Lovable IDE
-- Local development
-- GitHub Codespaces
 
 ## 📄 License
 
 MIT License
-
----
-
-## Original Lovable Project Info
-
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID

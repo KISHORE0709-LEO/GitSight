@@ -1,45 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Server, Wifi, RefreshCw, CheckCircle, AlertTriangle, Terminal } from "lucide-react";
 
+interface ChaosEvent {
+  message: string;
+  type: "info" | "error" | "warning" | "success";
+}
+
 interface TestResult {
   action: string;
-  responses: string[];
-  status: "success" | "recovering";
+  events: ChaosEvent[];
+  status: "running" | "recovered" | "failed";
 }
 
 export default function Chaos() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [running, setRunning] = useState(false);
 
-  const runTest = (type: "worker" | "api") => {
+  const runTest = async (type: "worker" | "api") => {
     setRunning(true);
-    const test: TestResult = type === "worker"
-      ? {
-          action: "Simulate Worker Failure",
-          responses: ["Worker-2 stopped", "Queue backlog increasing...", "Health check failed", "Worker-2 restarted automatically", "Queue processing resumed", "System recovered ✓"],
-          status: "success",
-        }
-      : {
-          action: "Simulate API Failure",
-          responses: ["GitHub API returning 503", "Retry attempt 1/3...", "Retry attempt 2/3...", "API recovered on attempt 2", "Processing resumed normally", "System recovered ✓"],
-          status: "success",
-        };
+    const endpoint = type === "worker" ? "/api/chaos/worker-failure" : "/api/chaos/api-failure";
+    const action = type === "worker" ? "Simulate Worker Failure" : "Simulate API Failure";
 
-    setResults((prev) => [...prev, { ...test, responses: [] }]);
-    test.responses.forEach((msg, i) => {
-      setTimeout(() => {
-        setResults((prev) => {
-          const updated = [...prev];
-          const last = { ...updated[updated.length - 1] };
-          last.responses = [...last.responses, msg];
-          updated[updated.length - 1] = last;
-          return updated;
+    const testResult: TestResult = {
+      action,
+      events: [],
+      status: "running"
+    };
+
+    setResults((prev) => [...prev, testResult]);
+
+    try {
+      // Trigger failure
+      const response = await fetch(endpoint, { method: "POST" });
+      const data = await response.json();
+
+      // Stream events
+      if (data.events) {
+        for (const event of data.events) {
+          await new Promise(resolve => setTimeout(resolve, 600));
+          setResults((prev) => {
+            const updated = [...prev];
+            const last = { ...updated[updated.length - 1] };
+            last.events = [...last.events, event];
+            updated[updated.length - 1] = last;
+            return updated;
+          });
+        }
+      }
+
+      // Update status
+      setResults((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1].status = data.recovered ? "recovered" : "failed";
+        return updated;
+      });
+    } catch (error) {
+      setResults((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1].events.push({
+          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          type: "error"
         });
-        if (i === test.responses.length - 1) setRunning(false);
-      }, (i + 1) * 600);
-    });
+        updated[updated.length - 1].status = "failed";
+        return updated;
+      });
+    }
+
+    setRunning(false);
   };
 
   return (
@@ -64,6 +93,7 @@ export default function Chaos() {
             <h3 className="text-base font-bold text-foreground">Simulate Worker Failure</h3>
             <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Stop a worker container and test auto-recovery</p>
           </motion.button>
+
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
@@ -92,27 +122,38 @@ export default function Chaos() {
                   <Terminal className="h-4 w-4 text-primary" />
                   <span className="text-sm font-mono font-bold text-foreground">{result.action}</span>
                 </div>
-                {result.responses.length === 6 && (
+                {result.status === "recovered" && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
                     <CheckCircle className="h-3 w-3 text-primary" />
                     <span className="text-[10px] font-mono text-primary font-bold">RECOVERED</span>
                   </div>
                 )}
+                {result.status === "failed" && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20">
+                    <AlertTriangle className="h-3 w-3 text-destructive" />
+                    <span className="text-[10px] font-mono text-destructive font-bold">FAILED</span>
+                  </div>
+                )}
               </div>
               <div className="p-5 font-mono text-xs space-y-2">
-                {result.responses.map((msg, i) => (
+                {result.events.map((event, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -5 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={`flex items-center gap-2.5 ${msg.includes("✓") ? "text-primary" : msg.includes("fail") || msg.includes("stop") || msg.includes("503") ? "text-destructive" : msg.includes("Retry") || msg.includes("increasing") ? "text-warning" : "text-foreground/80"}`}
+                    className={`flex items-center gap-2.5 ${
+                      event.type === "success" ? "text-primary" :
+                      event.type === "error" ? "text-destructive" :
+                      event.type === "warning" ? "text-warning" :
+                      "text-foreground/80"
+                    }`}
                   >
-                    <span className="text-muted-foreground/40 select-none">❯</span> {msg}
+                    <span className="text-muted-foreground/40 select-none">❯</span> {event.message}
                   </motion.div>
                 ))}
-                {running && result.responses.length < 6 && ri === results.length - 1 && (
+                {result.status === "running" && (
                   <div className="flex items-center gap-2.5 text-muted-foreground pt-1">
-                    <RefreshCw className="h-3 w-3 animate-spin" /> 
+                    <RefreshCw className="h-3 w-3 animate-spin" />
                     <span className="animate-pulse">Processing...</span>
                   </div>
                 )}

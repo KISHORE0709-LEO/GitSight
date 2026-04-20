@@ -1,0 +1,187 @@
+name: GitSight CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: gitsight-worker
+  LAMBDA_LAYER_NAME: gitsight-dependencies
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test Results
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint --if-present
+
+      - name: Run unit tests
+        run: npm test --if-present
+
+      - name: Build frontend
+        run: npm run build
+
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Docker Image Build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd backend/worker
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Push to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+  deploy-lambda:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    name: AWS Deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Lambda dependencies
+        run: |
+          cd backend/lambda
+          npm ci
+
+      - name: Package Lambda functions
+        run: |
+          cd backend/lambda
+          zip -r api-handler.zip api-handler.js node_modules/
+          zip -r collector.zip collector.js node_modules/
+          zip -r metrics.zip metrics.js node_modules/
+          zip -r pipeline.zip pipeline.js node_modules/
+
+      - name: Deploy Lambda functions
+        run: |
+          aws lambda update-function-code \
+            --function-name gitsight-api-handler \
+            --zip-file fileb://backend/lambda/api-handler.zip
+          
+          aws lambda update-function-code \
+            --function-name gitsight-collector \
+            --zip-file fileb://backend/lambda/collector.zip
+          
+          aws lambda update-function-code \
+            --function-name gitsight-metrics \
+            --zip-file fileb://backend/lambda/metrics.zip
+          
+          aws lambda update-function-code \
+            --function-name gitsight-pipeline \
+            --zip-file fileb://backend/lambda/pipeline.zip
+
+  deploy-ecs:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    name: ECS Worker Deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster gitsight-cluster \
+            --service gitsight-worker-service \
+            --force-new-deployment
+
+  monitoring:
+    needs: [deploy-lambda, deploy-ecs]
+    runs-on: ubuntu-latest
+    name: Monitoring Activation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Enable CloudWatch monitoring
+        run: |
+          aws cloudwatch put-metric-alarm \
+            --alarm-name gitsight-lambda-errors \
+            --alarm-description "Alert on Lambda errors" \
+            --metric-name Errors \
+            --namespace AWS/Lambda \
+            --statistic Sum \
+            --period 300 \
+            --threshold 5 \
+            --comparison-operator GreaterThanThreshold \
+            --evaluation-periods 1 || true
+
+      - name: Trigger incident monitoring
+        run: |
+          curl -X POST https://${{ secrets.API_GATEWAY_ID }}.execute-api.us-east-1.amazonaws.com/incidents/check \
+            -H "Content-Type: application/json" \
+            -d '{"source":"deployment"}' || true
