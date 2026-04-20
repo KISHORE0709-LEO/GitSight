@@ -3,29 +3,11 @@ import { Layout } from "@/components/Layout";
 import { useAnalysis } from "@/context/AnalysisContext";
 import { AlertCircle, CheckCircle, Clock, Zap, Activity, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
+import { mockApi } from "@/services/mockApi";
 
-interface Incident {
-  id: string;
-  severity: "critical" | "warning" | "info";
-  title: string;
-  description: string;
-  component: string;
-  timestamp: string;
-  status: "active" | "resolved";
-  metric: string;
-  threshold: string;
-  current: string;
-}
+import type { Incident } from "@/services/mockApi";
 
-interface AlertRule {
-  id: string;
-  metric: string;
-  condition: string;
-  threshold: string;
-  severity: string;
-}
-
-const alertRules: AlertRule[] = [
+const alertRules = [
   { id: "1", metric: "Queue Length", condition: ">", threshold: "100", severity: "critical" },
   { id: "2", metric: "API Latency", condition: ">", threshold: "2000ms", severity: "warning" },
   { id: "3", metric: "Worker Health", condition: "=", threshold: "failed", severity: "critical" },
@@ -38,18 +20,22 @@ export default function Incidents() {
   const { analyzedUsername } = useAnalysis();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchIncidents = async () => {
-      try {
-        const response = await fetch(`/api/incidents`);
-        if (response.ok) {
-          const data = await response.json();
-          setIncidents(data);
-        }
+      if (!analyzedUsername) {
         setLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch incidents:', error);
+        return;
+      }
+
+      try {
+        const data = await mockApi.getIncidents(analyzedUsername);
+        setIncidents(data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch incidents:', err);
+        setError('Failed to load incidents');
         setLoading(false);
       }
     };
@@ -57,7 +43,21 @@ export default function Incidents() {
     fetchIncidents();
     const interval = setInterval(fetchIncidents, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [analyzedUsername]);
+
+  if (!analyzedUsername) {
+    return (
+      <Layout>
+        <div className="px-6 py-10 max-w-6xl mx-auto">
+          <div className="rounded-lg border border-border bg-card p-8 text-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-foreground font-bold">No User Analyzed</p>
+            <p className="text-sm text-muted-foreground mt-1">Go to the Analyze page and enter a GitHub username to view their incidents</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const activeIncidents = incidents.filter(i => i.status === 'active');
   const resolvedIncidents = incidents.filter(i => i.status === 'resolved');
@@ -82,17 +82,13 @@ export default function Incidents() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {analyzedUsername ? `Incidents for @${analyzedUsername}` : "Incident Management"}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Incidents for @{analyzedUsername}</h1>
           <p className="text-sm text-muted-foreground mt-1">Real-time operational alerts and anomaly detection</p>
         </div>
 
-        {analyzedUsername && (
-          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-            <p className="text-sm font-mono text-primary">
-              Monitoring incidents for: <span className="font-bold">@{analyzedUsername}</span>
-            </p>
+        {error && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+            <p className="text-destructive">{error}</p>
           </div>
         )}
 
@@ -134,7 +130,9 @@ export default function Incidents() {
             Active Incidents ({activeIncidents.length})
           </h2>
           <div className="space-y-3">
-            {activeIncidents.length > 0 ? (
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading incidents...</p>
+            ) : activeIncidents.length > 0 ? (
               activeIncidents.map((incident) => (
                 <motion.div
                   key={incident.id}

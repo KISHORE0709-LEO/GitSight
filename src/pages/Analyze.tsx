@@ -3,18 +3,11 @@ import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
 import { MetricCard } from "@/components/MetricCard";
 import { useAnalysis } from "@/context/AnalysisContext";
-import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal, Loader2, AlertCircle, TrendingUp, Award } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { GitCommit, GitPullRequest, GitMerge, XCircle, Trophy, Search, Terminal, Loader2, AlertCircle, TrendingUp, Award, Users, Code2, Star } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { mockApi } from "@/services/mockApi";
 
-interface AnalysisResult {
-  username: string;
-  commits: number;
-  mergedPR: number;
-  rejectedPR: number;
-  score: number;
-  weeklyActivity: { day: string; commits: number }[];
-  repositories?: number;
-}
+import type { AnalysisResult } from "@/services/mockApi";
 
 export default function Analyze() {
   const [username, setUsername] = useState("");
@@ -31,26 +24,8 @@ export default function Analyze() {
     setData(null);
 
     try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim() })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 404) {
-          throw new Error('User not found on GitHub. Please check the username and try again.');
-        }
-        if (response.status === 403) {
-          throw new Error('GitHub API rate limit reached. Try again later.');
-        }
-        throw new Error(errorData.message || `Failed to analyze user: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await mockApi.analyzeUser(username.trim());
       setData(result);
-      // Store the analyzed username in context
       setAnalyzedUsername(result.username);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -137,12 +112,20 @@ export default function Analyze() {
               <MetricCard icon={GitPullRequest} title="Total PRs" value={data.mergedPR + data.rejectedPR} />
             </div>
 
-            {data.repositories && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl border border-border bg-card">
-                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Repositories Analyzed</p>
+                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Repositories</p>
                 <p className="text-3xl font-bold font-mono text-foreground">{data.repositories}</p>
               </div>
-            )}
+              <div className="p-4 rounded-xl border border-border bg-card">
+                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Followers</p>
+                <p className="text-3xl font-bold font-mono text-foreground">{data.followers}</p>
+              </div>
+              <div className="p-4 rounded-xl border border-border bg-card">
+                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Following</p>
+                <p className="text-3xl font-bold font-mono text-foreground">{data.following}</p>
+              </div>
+            </div>
 
             <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 font-mono text-xs text-muted-foreground flex items-center gap-2">
               <Terminal className="h-4 w-4 text-primary shrink-0" />
@@ -186,6 +169,53 @@ export default function Analyze() {
                     <p className="text-xs font-mono text-muted-foreground uppercase">Activity Trend</p>
                     <p className="text-lg font-bold text-foreground font-mono">{developerStats.trend}</p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {data.topLanguages && data.topLanguages.length > 0 && (
+              <div className="rounded-xl border border-border card-shine p-6">
+                <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold mb-6">Top Languages</h3>
+                <div className="space-y-3">
+                  {data.topLanguages.map((lang) => (
+                    <div key={lang.language} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Code2 className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-mono text-foreground">{lang.language}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 h-2 rounded-full bg-secondary overflow-hidden">
+                          <div className="h-full bg-primary" style={{ width: `${lang.percentage}%` }} />
+                        </div>
+                        <span className="text-xs font-mono text-muted-foreground w-8 text-right">{lang.percentage}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.recentRepos && data.recentRepos.length > 0 && (
+              <div className="rounded-xl border border-border card-shine p-6">
+                <h3 className="text-xs font-mono text-primary uppercase tracking-[0.2em] font-bold mb-6">Recent Repositories</h3>
+                <div className="space-y-3">
+                  {data.recentRepos.map((repo) => (
+                    <div key={repo.name} className="p-3 rounded-lg border border-border/50 hover:border-primary/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <GitPullRequest className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-mono text-foreground">{repo.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-mono text-muted-foreground bg-secondary px-2 py-1 rounded">{repo.language}</span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Star className="h-3 w-3 text-warning" />
+                            {repo.stars}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

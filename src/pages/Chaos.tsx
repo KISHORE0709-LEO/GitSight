@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAnalysis } from "@/context/AnalysisContext";
-import { Zap, Server, Wifi, RefreshCw, CheckCircle, AlertTriangle, Terminal } from "lucide-react";
+import { Zap, Server, Wifi, RefreshCw, CheckCircle, AlertTriangle, Terminal, AlertCircle } from "lucide-react";
 
 interface ChaosEvent {
   message: string;
@@ -13,12 +13,27 @@ interface TestResult {
   action: string;
   events: ChaosEvent[];
   status: "running" | "recovered" | "failed";
+  username: string;
 }
 
 export default function Chaos() {
   const { analyzedUsername } = useAnalysis();
   const [results, setResults] = useState<TestResult[]>([]);
   const [running, setRunning] = useState(false);
+
+  if (!analyzedUsername) {
+    return (
+      <Layout>
+        <div className="px-6 py-10 max-w-6xl mx-auto">
+          <div className="rounded-lg border border-border bg-card p-8 text-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-foreground font-bold">No User Analyzed</p>
+            <p className="text-sm text-muted-foreground mt-1">Go to the Analyze page and enter a GitHub username to run chaos tests</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const runTest = async (type: "worker" | "api") => {
     setRunning(true);
@@ -28,13 +43,18 @@ export default function Chaos() {
     const testResult: TestResult = {
       action,
       events: [],
-      status: "running"
+      status: "running",
+      username: analyzedUsername
     };
 
     setResults((prev) => [...prev, testResult]);
 
     try {
-      const response = await fetch(endpoint, { method: "POST" });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: analyzedUsername })
+      });
       const data = await response.json();
 
       if (data.events) {
@@ -74,19 +94,9 @@ export default function Chaos() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {analyzedUsername ? `Chaos Testing for @${analyzedUsername}` : "Chaos Testing"}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Chaos Testing for @{analyzedUsername}</h1>
           <p className="text-sm text-muted-foreground mt-1">Simulate failures to validate system resilience</p>
         </div>
-
-        {analyzedUsername && (
-          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-            <p className="text-sm font-mono text-primary">
-              Testing resilience for: <span className="font-bold">@{analyzedUsername}</span>
-            </p>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.button
@@ -100,7 +110,7 @@ export default function Chaos() {
               <Server className="h-5 w-5 text-destructive group-hover:animate-pulse" />
             </div>
             <h3 className="text-base font-bold text-foreground">Simulate Worker Failure</h3>
-            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Stop a worker container and test auto-recovery</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Stop a worker container and test auto-recovery for @{analyzedUsername}</p>
           </motion.button>
 
           <motion.button
@@ -114,7 +124,7 @@ export default function Chaos() {
               <Wifi className="h-5 w-5 text-warning group-hover:animate-pulse" />
             </div>
             <h3 className="text-base font-bold text-foreground">Simulate API Failure</h3>
-            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Trigger GitHub API errors and test retry mechanisms</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Trigger GitHub API errors and test retry mechanisms for @{analyzedUsername}</p>
           </motion.button>
         </div>
 
@@ -130,6 +140,7 @@ export default function Chaos() {
                 <div className="flex items-center gap-2.5">
                   <Terminal className="h-4 w-4 text-primary" />
                   <span className="text-sm font-mono font-bold text-foreground">{result.action}</span>
+                  <span className="text-xs text-muted-foreground ml-2">@{result.username}</span>
                 </div>
                 {result.status === "recovered" && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
@@ -174,7 +185,7 @@ export default function Chaos() {
         {results.length === 0 && (
           <div className="rounded-xl border border-dashed border-border/50 p-12 flex flex-col items-center justify-center text-center">
             <AlertTriangle className="h-8 w-8 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground font-mono">No chaos tests run yet</p>
+            <p className="text-sm text-muted-foreground font-mono">No chaos tests run yet for @{analyzedUsername}</p>
             <p className="text-xs text-muted-foreground/60 mt-1">Click a test above to simulate a failure</p>
           </div>
         )}

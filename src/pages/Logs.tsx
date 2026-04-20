@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { LogEntry } from "@/components/LogEntry";
 import { useAnalysis } from "@/context/AnalysisContext";
-import { Terminal, RefreshCw } from "lucide-react";
+import { Terminal, RefreshCw, AlertCircle } from "lucide-react";
 
 interface Log {
   level: "INFO" | "WARNING" | "ERROR" | "DEBUG";
@@ -17,20 +17,29 @@ export default function Logs() {
   const [filter, setFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const filters = ["ALL", "INFO", "WARNING", "ERROR", "DEBUG"];
 
   useEffect(() => {
     const fetchLogs = async () => {
+      if (!analyzedUsername) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch(`/api/logs?level=${filter === "ALL" ? "" : filter}`);
+        const level = filter === "ALL" ? "" : filter;
+        const response = await fetch(`/api/logs?username=${analyzedUsername}&level=${level}`);
         if (response.ok) {
           const data = await response.json();
           setLogs(data);
+          setError(null);
         }
         setLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch logs:', error);
+      } catch (err) {
+        console.error('Failed to fetch logs:', err);
+        setError('Failed to load logs');
         setLoading(false);
       }
     };
@@ -41,7 +50,21 @@ export default function Logs() {
       const interval = setInterval(fetchLogs, 3000);
       return () => clearInterval(interval);
     }
-  }, [filter, autoRefresh]);
+  }, [filter, autoRefresh, analyzedUsername]);
+
+  if (!analyzedUsername) {
+    return (
+      <Layout>
+        <div className="px-6 py-10 max-w-6xl mx-auto">
+          <div className="rounded-lg border border-border bg-card p-8 text-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-foreground font-bold">No User Analyzed</p>
+            <p className="text-sm text-muted-foreground mt-1">Go to the Analyze page and enter a GitHub username to view their logs</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const filtered = filter === "ALL" ? logs : logs.filter((l) => l.level === filter);
 
@@ -57,17 +80,13 @@ export default function Logs() {
     <Layout>
       <div className="px-6 py-10 max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {analyzedUsername ? `Logs for @${analyzedUsername}` : "System Logs"}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Logs for @{analyzedUsername}</h1>
           <p className="text-sm text-muted-foreground mt-1">Centralized logging for debugging and monitoring</p>
         </div>
 
-        {analyzedUsername && (
-          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-            <p className="text-sm font-mono text-primary">
-              Showing logs for: <span className="font-bold">@{analyzedUsername}</span>
-            </p>
+        {error && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+            <p className="text-destructive">{error}</p>
           </div>
         )}
 
@@ -115,13 +134,13 @@ export default function Logs() {
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-muted-foreground">Loading logs...</div>
+              <div className="p-4 text-center text-muted-foreground">Loading logs for @{analyzedUsername}...</div>
             ) : filtered.length > 0 ? (
               filtered.map((log, i) => (
                 <LogEntry key={i} {...log} />
               ))
             ) : (
-              <div className="p-4 text-center text-muted-foreground">No logs found</div>
+              <div className="p-4 text-center text-muted-foreground">No logs found for @{analyzedUsername}</div>
             )}
           </div>
         </div>
